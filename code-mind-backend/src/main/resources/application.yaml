@@ -1,0 +1,113 @@
+spring:
+  application:
+    name: codemind
+  datasource:
+    url: jdbc:postgresql://172.23.166.254:5432/codemind
+    password: admin
+    username: admin
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 2
+      minimum-idle: 1
+      idle-timeout: 30000
+      max-lifetime: 600000
+      connection-timeout: 20000
+  jpa:
+    database: POSTGRESQL
+    show-sql: true
+    open-in-view: true
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+  ai:
+    chat:
+      client:
+        enabled: true
+      memory:
+        repository:
+          jdbc:
+            initialize-schema: ALWAYS
+    google:
+      genai:
+        api-key: ${GOOGLE_API_KEY}
+        chat:
+          model: gemini-3.5-flash-lite
+          temperature: 0.3
+        embedding:
+          api-key: ${GOOGLE_API_KEY}
+          text:
+            model: text-embedding-004
+            dimensions: 768
+    vectorstore:
+      pgvector:
+        dimensions: 768
+        distance-type: COSINE_DISTANCE
+        table-name: vector_store
+        initialize-schema: true
+  security:
+    oauth2:
+      client:
+        provider:
+          github:
+            user-name-attribut: id
+        registration:
+          github:
+            client-id: ${GITHUB_CLIENT_ID}
+            client-secret: ${GITHUB_CLIENT_SECRET}
+            scope:
+              - email
+              - user
+              - repo
+              - openid
+
+server:
+  port: 8081
+  servlet:
+    session:
+      timeout: 7d
+      cookie:
+        name: CODEMIND_SESSION
+        http-only: true
+        same-site: LAX
+
+logging:
+  level:
+    org:
+      springframework:
+        ai:
+          chat:
+            client:
+              advisor: debug
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: ALWAYS
+    info:
+      env:
+        enabled: true
+
+
+info:
+  app:
+    name: "Code Mind"
+    description: "Code mind"
+    version: "1.0.0"
+    java:
+      version: "${java.version}"
+app:
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
+  cors:
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000}
+  index:
+    max-file-bytes: 102400
+    chunk-size: 800
+    chunk-overlap: 100
+  github:
+    api-delay-ms: 50

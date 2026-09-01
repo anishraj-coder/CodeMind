@@ -1,0 +1,11 @@
+package com.backend.codemind.repository;
+
+import com.backend.codemind.entity.AppUser;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
+
+public interface AppUserRepository extends JpaRepository<AppUser,Long> {
+
+    Optional<AppUser> findByGithubId(String githubId);
+}
