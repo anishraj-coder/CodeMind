@@ -11,9 +11,10 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.*;
-import org.springframework.validation.annotation.Validated;
 
 @Configuration
 @EnableWebSecurity
@@ -35,9 +36,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth->auth
                         .requestMatchers(
                                 "/api/auth/login-url",
+                                "/oauth2/authorization/**",
                                 "/login/oauth2/**",
-                                "/error"
+                                "/error",
+                                "/actuator"
                         ).permitAll()
+
                         .requestMatchers(HttpMethod.OPTIONS,"/**").permitAll()
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll()
@@ -63,20 +67,17 @@ public class SecurityConfig {
                 )
                 .build();
     }
-
     @Bean
-    public AuthenticationSuccessHandler successHandler(@Value("${app.frontend-url}:http://localhost:3000")
-                                                           String frontendUrl){
-        SimpleUrlAuthenticationSuccessHandler handler=new SimpleUrlAuthenticationSuccessHandler();
-        handler.setDefaultTargetUrl(frontendUrl+"/auth/callbacl");
+    public AuthenticationSuccessHandler successHandler(@Value("${app.frontend-url:http://localhost:3000}") String frontendUrl) {
+        SimpleUrlAuthenticationSuccessHandler handler = new SimpleUrlAuthenticationSuccessHandler();
+        handler.setDefaultTargetUrl(frontendUrl + "/auth/callback"); // also fixed typo 'callbacl' -> 'callback'
         return handler;
     }
 
     @Bean
-    public AuthenticationFailureHandler failureHandler(@Value("${app.frontend-url}:http://localhost:3000")
-                                                           String frontendUrl){
-        SimpleUrlAuthenticationFailureHandler handler=new SimpleUrlAuthenticationFailureHandler();
-        handler.setDefaultFailureUrl(frontendUrl+"/login?error=oauth_failure");
+    public AuthenticationFailureHandler failureHandler(@Value("${app.frontend-url:http://localhost:3000}") String frontendUrl) {
+        SimpleUrlAuthenticationFailureHandler handler = new SimpleUrlAuthenticationFailureHandler();
+        handler.setDefaultFailureUrl(frontendUrl + "/login?error=oauth_failure");
         return handler;
     }
 }

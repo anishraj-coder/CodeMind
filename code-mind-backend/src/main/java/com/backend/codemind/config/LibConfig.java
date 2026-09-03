@@ -1,5 +1,6 @@
 package com.backend.codemind.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -15,8 +16,10 @@ import java.util.concurrent.Executor;
 @Configuration
 public class LibConfig {
     @Bean
-    public TextEncryptor textEncryptor(){
-        return Encryptors.noOpText();
+    public TextEncryptor textEncryptor(@Value("${app.crypto.password}")String password,
+                                       @Value("${app.crypto.salt}")String salt){
+        return Encryptors.delux(password,salt);
+
     }
 
 

@@ -26,7 +26,11 @@ public class AppUserService {
     }
 
     public String decryptAccessToken(AppUser user){
-        return textEncryptor.decrypt(user.getAccessToken());
+        return this.decryptAccessToken(user.getAccessToken());
+    }
+
+    public String decryptAccessToken(String encryptedAccessToken){
+        return textEncryptor.decrypt(encryptedAccessToken);
     }
 
     @Transactional
@@ -37,9 +41,9 @@ public class AppUserService {
                 String.valueOf(attributes.get("name")):login;
         String avatarUrl=String.valueOf(attributes.get("avatar_url"));
 
-        String encryptedToken=passwordEncoder.encode(accessToken);
+        String encryptedToken=textEncryptor.encrypt(accessToken);
 
-        AppUser user= appUserRepository.findByGithubId(githubId.toString()).orElseGet(AppUser::new);
+        AppUser user= appUserRepository.findByGithubId(githubId).orElseGet(AppUser::new);
 
         user.setAccessToken(encryptedToken);
         user.setAvatarUrl(avatarUrl);
@@ -47,7 +51,7 @@ public class AppUserService {
         user.setGithubId(githubId);
         user.setGithubUserName(login);
         user.setTokenScope(scopes);
-        return user;
+        return appUserRepository.save(user);
 
     }
 

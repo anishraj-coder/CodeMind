@@ -1,0 +1,6 @@
+modification.md
+.env
+.env.local
+.env.*.local
+node_modules
+target

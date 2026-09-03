@@ -11,11 +11,12 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
-import java.nio.file.attribute.UserPrincipal;
+
 
 @Service
 @RequiredArgsConstructor
-public class GitHubOauth2UserService implements OAuth2UserService {
+public class GitHubOauth2UserService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
+
 
     private  final AppUserService userService;
     private final DefaultOAuth2UserService delegate =new DefaultOAuth2UserService();

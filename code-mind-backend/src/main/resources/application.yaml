@@ -3,8 +3,9 @@ spring:
     name: codemind
   datasource:
     url: jdbc:postgresql://172.23.166.254:5432/codemind
-    password: admin
-    username: admin
+    password: ${DB_PASSWORD}
+    username: ${DB_USERNAME}
+
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 2
@@ -17,7 +18,7 @@ spring:
     show-sql: true
     open-in-view: true
     hibernate:
-      ddl-auto: update
+      ddl-auto: create
     properties:
       hibernate:
         format_sql: true
@@ -31,12 +32,12 @@ spring:
             initialize-schema: ALWAYS
     google:
       genai:
-        api-key: ${GOOGLE_API_KEY}
+        api-key: ${GOOGLE_API_KEY:}
         chat:
           model: gemini-3.5-flash-lite
           temperature: 0.3
         embedding:
-          api-key: ${GOOGLE_API_KEY}
+          api-key: ${GOOGLE_API_KEY:}
           text:
             model: text-embedding-004
             dimensions: 768
@@ -51,16 +52,17 @@ spring:
       client:
         provider:
           github:
-            user-name-attribut: id
+            user-name-attribute: id
         registration:
           github:
             client-id: ${GITHUB_CLIENT_ID}
             client-secret: ${GITHUB_CLIENT_SECRET}
+
             scope:
               - email
               - user
               - repo
-              - openid
+
 
 server:
   port: 8081
@@ -102,6 +104,9 @@ info:
     java:
       version: "${java.version}"
 app:
+  crypto:
+    password: securepass@123
+    salt: 5c0744940b5c369b
   frontend-url: ${FRONTEND_URL:http://localhost:3000}
   cors:
     allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000}
@@ -111,3 +116,4 @@ app:
     chunk-overlap: 100
   github:
     api-delay-ms: 50
+    access-token: ${ACCESS_TOKEN:}

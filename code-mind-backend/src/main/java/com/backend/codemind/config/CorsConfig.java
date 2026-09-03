@@ -16,7 +16,8 @@ public class CorsConfig {
 
     public final String allowedOrigins;
 
-    public CorsConfig(@Value("${app.cors.allowed-origins}:http://localhost:3000")String allowedOrigins){
+    public CorsConfig(@Value("${app.cors.allowed-origins:http://localhost:3000}") String allowedOrigins){
+
         this.allowedOrigins=allowedOrigins;
     }
 
