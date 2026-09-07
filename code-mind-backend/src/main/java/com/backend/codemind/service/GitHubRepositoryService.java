@@ -7,11 +7,9 @@ import com.backend.codemind.entity.GitHubRepository;
 import com.backend.codemind.entity.enums.IndexStatus;
 import com.backend.codemind.exceptions.NotFoundException;
 import com.backend.codemind.repository.GitHubRepositoryRepository;
-import com.backend.codemind.security.CurrentUser;
-import com.backend.codemind.service.github.GitHubApiClient;
+import com.backend.codemind.service.api.GitHubApiClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,7 +25,6 @@ public class GitHubRepositoryService {
     private final GitHubApiClient gitHubApiClient;
     private final GitHubRepositoryRepository repositoryRepository;
     private final AppUserService userService;
-    private final CurrentUser currentUser;
 
     private static Long toLong(Object value){
 
@@ -68,7 +65,15 @@ public class GitHubRepositoryService {
                 description=description.substring(0,200);
             }
             repo.setDescription(description);
-            repo.setLastCommitHash(this.getLastCommitHash(accessToken,repo.getOwner(),repo.getRepositoryName()));
+            String lastCommitHash=this.getLastCommitHash(accessToken,repo.getOwner(),repo.getRepositoryName());
+            if(repo.getIndexStatus()!=null&&repo.getIndexStatus()==IndexStatus.READY
+                    &&!repo.getLastCommitHash().equals(lastCommitHash)){
+                repo.setIndexStatus(IndexStatus.STALE);
+            }else if(repo.getIndexStatus()==null) {
+                repo.setIndexStatus(IndexStatus.PENDING);
+            }
+            repo.setLastCommitHash(lastCommitHash);
+
             saved.add(repositoryRepository.save(repo));
         }
         return saved.stream().map(GitHubRepositoryService::mapToResponse).toList();
@@ -130,7 +135,7 @@ public class GitHubRepositoryService {
                 .defaultBranch(repo.getDefaultBranch())
                 .htmlUrl(repo.getHtmlUrl())
                 .description(repo.getDescription())
-                .indexStatus(IndexStatus.PENDING)
+                .indexStatus(repo.getIndexStatus())
                 .indexedAt(null)
                 .chunkCount(0)
                 .filesProcessed(0)
@@ -151,8 +156,4 @@ public class GitHubRepositoryService {
                 .errorMessage(repo.getErrorMessage())
                 .build();
     }
-
-
-
-
 }

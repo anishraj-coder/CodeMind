@@ -1,19 +1,31 @@
-export interface Repository {
-  id: string;
-  name: string;
+export type IndexStatus = 'PENDING' | 'INDEXING' | 'READY' | 'DONE';
+
+export interface GitHubRepositoryResponse {
+  id: number;
+  githubRepoId: number;
   owner: string;
-  description?: string;
-  stars: number;
-  forks: number;
-  language: string;
-  updatedAt: string;
+  name: string;
+  fullName: string;
   isPrivate: boolean;
-  status: "indexed" | "indexing" | "failed" | "idle";
+  defaultBranch: string;
+  language: string | null;
+  htmlUrl: string;
+  description: string | null;
+  indexStatus: IndexStatus;
+  indexedAt: string | null;
+  chunkCount: number;
+  filesTotal: number;
+  filesProcessed: number;
+  errorMessage: string | null;
+  lastCommitHash: string | null;
 }
 
-export interface OverviewStats {
-  totalRepos: number;
-  indexedRepos: number;
-  totalChats: number;
-  storageUsed: string;
+export interface IndexStatusResponse {
+  repositoryId: number;
+  indexStatus: IndexStatus;
+  filesTotal: number;
+  filesProcessed: number;
+  chunkCount: number;
+  indexedAt: string | null;
+  errorMessage: string | null;
 }

@@ -1,11 +1,11 @@
 spring:
   application:
     name: codemind
+
   datasource:
     url: jdbc:postgresql://172.23.166.254:5432/codemind
     password: ${DB_PASSWORD}
     username: ${DB_USERNAME}
-
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 2
@@ -13,19 +13,21 @@ spring:
       idle-timeout: 30000
       max-lifetime: 600000
       connection-timeout: 20000
+
   jpa:
     database: POSTGRESQL
-    show-sql: true
+    show-sql: false
     open-in-view: true
     hibernate:
       ddl-auto: create
     properties:
       hibernate:
         format_sql: true
+
   ai:
     chat:
       client:
-        enabled: true
+        enabled: false
       memory:
         repository:
           jdbc:
@@ -34,19 +36,22 @@ spring:
       genai:
         api-key: ${GOOGLE_API_KEY:}
         chat:
-          model: gemini-3.5-flash-lite
+          model: gemini-3.5-flash
           temperature: 0.3
-        embedding:
-          api-key: ${GOOGLE_API_KEY:}
-          text:
-            model: text-embedding-004
-            dimensions: 768
+    ollama:
+      base-url:   http://172.23.166.254:11434
+      chat:
+        model: qwen2.5:3b
+        temperature: 0.3
+      embedding:
+        model: nomic-embed-text
     vectorstore:
       pgvector:
         dimensions: 768
         distance-type: COSINE_DISTANCE
         table-name: vector_store
         initialize-schema: true
+
   security:
     oauth2:
       client:
@@ -57,12 +62,10 @@ spring:
           github:
             client-id: ${GITHUB_CLIENT_ID}
             client-secret: ${GITHUB_CLIENT_SECRET}
-
             scope:
               - email
               - user
               - repo
-
 
 server:
   port: 8081
@@ -95,7 +98,6 @@ management:
       env:
         enabled: true
 
-
 info:
   app:
     name: "Code Mind"
@@ -103,6 +105,7 @@ info:
     version: "1.0.0"
     java:
       version: "${java.version}"
+
 app:
   crypto:
     password: securepass@123

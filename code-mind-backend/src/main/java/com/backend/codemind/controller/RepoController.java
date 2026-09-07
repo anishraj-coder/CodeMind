@@ -1,10 +1,12 @@
 package com.backend.codemind.controller;
 
+import com.backend.codemind.config.WithRateLimiter;
 import com.backend.codemind.dto.GitHubRepositoryResponse;
 import com.backend.codemind.dto.IndexStatusResponse;
-import com.backend.codemind.entity.enums.IndexStatus;
+import com.backend.codemind.entity.AppUser;
 import com.backend.codemind.security.CurrentUser;
 import com.backend.codemind.service.GitHubRepositoryService;
+import com.backend.codemind.service.indexing.IndexingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +20,7 @@ import java.util.List;
 public class RepoController {
     private final CurrentUser currentUser;
     private final GitHubRepositoryService gitHubRepositoryService;
+    private final IndexingService indexingService;
 
     @GetMapping
     public ResponseEntity<List<GitHubRepositoryResponse>> list(@RequestParam(value = "refresh",
@@ -46,5 +49,14 @@ public class RepoController {
     public ResponseEntity<String> getLastCommit(@PathVariable("repoId")Long repoId){
         Long userId=currentUser.require().getUser().getId();
         return ResponseEntity.ok(gitHubRepositoryService.getLastCommitHash(userId,repoId));
+    }
+
+    @WithRateLimiter
+    @PostMapping("/index/{repoId}")
+    public ResponseEntity<GitHubRepositoryResponse> startIndexing(@PathVariable("repoId")Long repoId){
+        AppUser user=currentUser.require().getUser();
+        GitHubRepositoryResponse res=indexingService.startIndexing(repoId,user.getId());
+        indexingService.indexAsync(repoId, user.getId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(res);
     }
 }

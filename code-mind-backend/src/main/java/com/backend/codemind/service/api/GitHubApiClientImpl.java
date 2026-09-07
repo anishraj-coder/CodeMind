@@ -1,8 +1,7 @@
-package com.backend.codemind.service.github;
+package com.backend.codemind.service.api;
 
 import lombok.RequiredArgsConstructor;
 import org.apache.http.HttpHeaders;
-import org.springframework.context.annotation.Bean;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -63,11 +62,11 @@ public class GitHubApiClientImpl implements GitHubApiClient {
     }
 
     @Override
-    public String getFileContent(String accessToken,String owner,String repo,String path){
+    public String getFileContent(String accessToken, String owner, String repoName, String path){
 
         Map<String,Object>body=client(accessToken)
                 .get()
-                .uri("/repos/{owner}/{repo}/contents/{path}",owner,repo,path)
+                .uri("/repos/{owner}/{repo}/contents/{path}",owner, repoName,path)
                 .retrieve().body(MAP);
         if(body==null||body.isEmpty()){
             return null;
@@ -77,30 +76,28 @@ public class GitHubApiClientImpl implements GitHubApiClient {
         if(content==null){
             return null;
         }
-        if("base64".equals(encoding.toString())){
-            String raw=String.valueOf(content).replace("\\s","");
-            return new String(Base64.getDecoder().decode(raw), StandardCharsets.UTF_8);
+        if ("base64".equalsIgnoreCase(String.valueOf(encoding))) {
+            byte[] decoded = Base64.getMimeDecoder().decode(String.valueOf(content));
+            return new String(decoded, StandardCharsets.UTF_8);
         }
-
         return String.valueOf(content);
     }
 
     @Override
-    public Map<String,Object> getRepoTree(String accessToken,String owner,String repo,String branch){
+    public Map<String,Object> getRepoTree(String accessToken,String owner,String repoName,String branch){
         Map<String,Object>body=client(accessToken)
                 .get()
-                .uri("/repos/{owner}/{repo}/git/tree/{branch}?recursive=1",owner,repo,branch)
+                .uri("/repos/{owner}/{repoName}/git/trees/{branch}?recursive=1",owner,repoName,branch)
                 .retrieve().body(MAP);
         return body;
     }
 
     @Override
     public List<Map<String,Object>> getCommits(String accessToken, String owner, String repoName) {
-        List<Map<String,Object>>commits=client(accessToken)
+        return client(accessToken)
                 .get()
                 .uri("/repos/{owner}/{repoName}/commits",owner,repoName)
                 .retrieve().body(LIST_MAP);
-        return commits;
     }
 
 }
