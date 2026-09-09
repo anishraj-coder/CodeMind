@@ -3,7 +3,11 @@ package com.backend.codemind.service.api;
 import lombok.RequiredArgsConstructor;
 import org.apache.http.HttpHeaders;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.resilience.annotation.Retryable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 
 import java.nio.charset.StandardCharsets;
@@ -35,6 +39,14 @@ public class GitHubApiClientImpl implements GitHubApiClient {
     }
 
     @Override
+    @Retryable(
+            includes = {ResourceAccessException.class, HttpServerErrorException.class},
+            maxRetries = 4L,
+            maxDelay = 10000,
+            jitter = 2L,
+            delay = 1000,
+            multiplier = 2.0
+    )
     public List<Map<String,Object>> listUserRepo(String accessToken){
         List<Map<String,Object>>all=new ArrayList<>();
 
@@ -62,6 +74,14 @@ public class GitHubApiClientImpl implements GitHubApiClient {
     }
 
     @Override
+    @Retryable(
+            includes = {ResourceAccessException.class, HttpServerErrorException.class},
+            maxRetries = 4L,
+            maxDelay = 10000,
+            jitter = 2L,
+            delay = 1000,
+            multiplier = 2.0
+    )
     public String getFileContent(String accessToken, String owner, String repoName, String path){
 
         Map<String,Object>body=client(accessToken)
@@ -84,6 +104,14 @@ public class GitHubApiClientImpl implements GitHubApiClient {
     }
 
     @Override
+    @Retryable(
+            includes = {ResourceAccessException.class, HttpServerErrorException.class},
+            maxRetries = 4L,
+            maxDelay = 10000,
+            jitter = 2L,
+            delay = 1000,
+            multiplier = 2.0
+    )
     public Map<String,Object> getRepoTree(String accessToken,String owner,String repoName,String branch){
         Map<String,Object>body=client(accessToken)
                 .get()
@@ -93,6 +121,14 @@ public class GitHubApiClientImpl implements GitHubApiClient {
     }
 
     @Override
+    @Retryable(
+            includes = {ResourceAccessException.class, HttpServerErrorException.class},
+            maxRetries = 4L,
+            maxDelay = 10000,
+            jitter = 2L,
+            delay = 1000,
+            multiplier = 2.0
+    )
     public List<Map<String,Object>> getCommits(String accessToken, String owner, String repoName) {
         return client(accessToken)
                 .get()

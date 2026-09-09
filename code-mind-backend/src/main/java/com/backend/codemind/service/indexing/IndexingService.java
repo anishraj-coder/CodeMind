@@ -105,6 +105,8 @@ public class IndexingService {
                 }
             }catch (Exception ex) {
                 log.warn("[CHUNKING]: Failed processing file {} in repo {}: {}", path, repo.getFullName(), ex.getMessage());
+                throw ex;
+
             }
             processed++;
             if(processed%PROGRESS_EVERY_N_FILES==0||processed==filePaths.size()){

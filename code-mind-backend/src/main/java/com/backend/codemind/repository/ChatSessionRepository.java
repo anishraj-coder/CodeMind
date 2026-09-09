@@ -12,4 +12,5 @@ public interface ChatSessionRepository extends JpaRepository<ChatSession, UUID> 
     List<ChatSession> findAllByUserIdAndRepoIdOrderByCreatedAtDesc(Long userId,Long repoId);
     int countAllByUserIdAndRepoId(Long userId,Long repoId);
     Optional<ChatSession> findFirstByUserIdAndRepoIdOrderByCreatedAtAsc(Long userId,Long repoId);
+    int deleteAllByRepoId(Long repoId);
 }

@@ -20,8 +20,6 @@ public class ChatMessage {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID  id;
 
-    @Column(nullable = false,name = "session_id")
-    private UUID sessionId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -32,6 +30,10 @@ public class ChatMessage {
 
     @Column(columnDefinition = "TEXT")
     private String citations;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "session_id",nullable = false)
+    private ChatSession session;
 
     @CreationTimestamp
     @Column(updatable = false)

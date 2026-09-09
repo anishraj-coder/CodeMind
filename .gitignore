@@ -1,8 +1,15 @@
 modification.md
 citations_and_code_review.md
+chat_streaming_guide.md
+# Environment files
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+
+# Build & Dependencies
 node_modules
 target
+dist
+
+
 

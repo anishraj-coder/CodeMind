@@ -83,13 +83,6 @@ public class CodeChunker {
         return start.stream().mapToInt(Integer::intValue).toArray();
     }
 
-    private static Map<String,Object> baseMetadata(String repoId,String filePath,String language){
-        Map<String,Object>metadata=new HashMap<>();
-        metadata.put(RagSettings.METADATA_REPO_ID,repoId);
-        metadata.put(RagSettings.FILE_PATH,filePath);
-        metadata.put(RagSettings.LANGUAGE,language);
-        return metadata;
-    }
 
     private Document createChunkDocument(String text, String repoId, String filePath, String language,
                                          int chunkIdx, int startLine, int endLine) {

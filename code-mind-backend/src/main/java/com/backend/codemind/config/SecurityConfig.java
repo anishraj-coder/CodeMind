@@ -70,7 +70,7 @@ public class SecurityConfig {
     @Bean
     public AuthenticationSuccessHandler successHandler(@Value("${app.frontend-url:http://localhost:3000}") String frontendUrl) {
         SimpleUrlAuthenticationSuccessHandler handler = new SimpleUrlAuthenticationSuccessHandler();
-        handler.setDefaultTargetUrl(frontendUrl + "/auth/callback"); // also fixed typo 'callbacl' -> 'callback'
+        handler.setDefaultTargetUrl(frontendUrl + "/auth/callback");
         return handler;
     }
 

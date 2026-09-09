@@ -6,6 +6,7 @@ import com.backend.codemind.dto.IndexStatusResponse;
 import com.backend.codemind.entity.AppUser;
 import com.backend.codemind.security.CurrentUser;
 import com.backend.codemind.service.GitHubRepositoryService;
+import com.backend.codemind.service.chat.ChatLifeCycleService;
 import com.backend.codemind.service.indexing.IndexingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,6 +22,7 @@ public class RepoController {
     private final CurrentUser currentUser;
     private final GitHubRepositoryService gitHubRepositoryService;
     private final IndexingService indexingService;
+    private  final ChatLifeCycleService chatLifeCycleService;
 
     @GetMapping
     public ResponseEntity<List<GitHubRepositoryResponse>> list(@RequestParam(value = "refresh",
@@ -58,5 +60,12 @@ public class RepoController {
         GitHubRepositoryResponse res=indexingService.startIndexing(repoId,user.getId());
         indexingService.indexAsync(repoId, user.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(res);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteRepoIndexing(@PathVariable(name = "id")Long repoId){
+        Long userId=currentUser.require().getUser().getId();
+        chatLifeCycleService.deleteByUserIdAndRepID(userId,repoId);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).build();
     }
 }

@@ -1,19 +1,37 @@
-export interface ChatMessage {
-  id: string;
-  sender: "user" | "assistant";
-  content: string;
-  timestamp: string;
-  codeSnippets?: {
-    filename: string;
-    code: string;
-    language: string;
-  }[];
+export interface CitationDto {
+  filePath: string;
+  startLine: number;
+  endLine: number;
+  language: string | null;
 }
 
-export interface ChatSession {
+export type MessageRole = "USER" | "ASSISTANT";
+
+export interface ChatMessage {
   id: string;
-  repoId: string;
-  title: string;
-  createdAt: string;
-  messages: ChatMessage[];
+  role: MessageRole;
+  content: string;
+  citations?: CitationDto[];
+  createdAt?: string;
+  isStreaming?: boolean;
+}
+
+export interface ChatMessageResponse {
+  id?: string;
+  role: MessageRole;
+  content: string;
+  citations?: CitationDto[];
+  createdAt?: string;
+}
+
+export interface ChatSessionResponse {
+  sessionId: string;
+  sessionTitle: string;
+  messages: number;
+}
+
+export interface ChatRequest {
+  repoId: number;
+  repositoryFullName: string;
+  question: string;
 }

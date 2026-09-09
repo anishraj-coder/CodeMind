@@ -1,23 +1,44 @@
 import { Link } from "react-router";
-import { FolderGit2, MessageSquare, HardDrive, ArrowUpRight, Plus, Sparkles } from "lucide-react";
+import { FolderGit2, MessageSquare, HardDrive, ArrowUpRight, Plus, Sparkles, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { buttonVariants } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { RepoStatusBadge } from "@/components/dashboard/repo-status-badge";
+import { useRepo, useSyncRepos } from "@/hooks/use-repo.ts";
 import { cn } from "@/lib/utils";
 
 export function OverviewDashboard() {
+  const { data: repos, isLoading } = useRepo();
+  const { mutate: sync, isPending: isSyncing } = useSyncRepos();
+
+  const totalRepos = repos?.length || 0;
+  const indexedRepos = repos?.filter((r) => r.indexStatus === "READY" || r.indexStatus === "DONE") || [];
+  const indexingRepos = repos?.filter((r) => r.indexStatus === "INDEXING") || [];
+  const totalChunks = repos?.reduce((acc, r) => acc + (r.chunkCount || 0), 0) || 0;
+  const totalFiles = repos?.reduce((acc, r) => acc + (r.filesProcessed || 0), 0) || 0;
+
   const stats = [
-    { title: "Indexed Repositories", value: "4", total: "5 repos total", icon: FolderGit2 },
-    { title: "Total AI Chats", value: "28", total: "+12 this week", icon: MessageSquare },
-    { title: "Vector Index Storage", value: "1.2 GB", total: "of 5.0 GB quota", icon: HardDrive },
+    {
+      title: "Indexed Repositories",
+      value: `${indexedRepos.length}`,
+      total: `${totalRepos} repos total`,
+      icon: FolderGit2,
+    },
+    {
+      title: "Vector Code Chunks",
+      value: totalChunks.toLocaleString(),
+      total: `${totalFiles} files embedded`,
+      icon: MessageSquare,
+    },
+    {
+      title: "Active Indexing",
+      value: indexingRepos.length > 0 ? `${indexingRepos.length} in progress` : "Idle",
+      total: indexingRepos.length > 0 ? "Generating chunks" : "All queues cleared",
+      icon: HardDrive,
+    },
   ];
 
-  const recentRepos = [
-    { id: "1", name: "code-mind-backend", owner: "code-mind", status: "indexed", language: "Java", stars: 14, updatedAt: "2 hours ago" },
-    { id: "2", name: "code-mind-frontend", owner: "code-mind", status: "indexed", language: "TypeScript", stars: 22, updatedAt: "Just now" },
-    { id: "3", name: "spring-boot-starter-rag", owner: "code-mind", status: "indexing", language: "Java", stars: 5, updatedAt: "1 day ago" },
-  ];
+  const recentRepos = repos?.slice(0, 5) || [];
 
   return (
     <div className="flex flex-col gap-6">
@@ -32,8 +53,17 @@ export function OverviewDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            onClick={() => sync()}
+            disabled={isSyncing}
+            className="gap-2 cursor-pointer"
+          >
+            <RefreshCw className={cn("h-4 w-4", isSyncing && "animate-spin")} />
+            {isSyncing ? "Syncing..." : "Sync Repositories"}
+          </Button>
           <Link to="/dashboard" className={cn(buttonVariants({ variant: "default" }))}>
-            <Plus className="mr-2 h-4 w-4" /> Add Repository
+            <Plus className="mr-2 h-4 w-4" /> Manage Repos
           </Link>
         </div>
       </div>
@@ -54,86 +84,99 @@ export function OverviewDashboard() {
         ))}
       </div>
 
-      {/* Main Content Sections */}
-      <div className="grid gap-6 md:grid-cols-7">
-        <Card className="md:col-span-4">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Recent Repositories</CardTitle>
-              <CardDescription>Quick access to your active codebases</CardDescription>
+      {/* Recent Repositories Section */}
+      <Card className="w-full shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Recent Repositories</CardTitle>
+            <CardDescription>Quick access to your active codebases</CardDescription>
+          </div>
+          <Link to="/dashboard" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
+            View All <ArrowUpRight className="ml-1 h-4 w-4" />
+          </Link>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="space-y-3 p-2">
+              <Skeleton className="h-12 w-full rounded-lg" />
+              <Skeleton className="h-12 w-full rounded-lg" />
+              <Skeleton className="h-12 w-full rounded-lg" />
             </div>
-            <Link to="/dashboard" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
-              View All <ArrowUpRight className="ml-1 h-4 w-4" />
-            </Link>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentRepos.map((repo) => (
-                <div
-                  key={repo.id}
-                  className="flex items-center justify-between p-3 rounded-lg border bg-muted/40 hover:bg-muted/80 transition-colors"
-                >
-                  <div className="space-y-1">
-                    <Link
-                      to={`/chat/${repo.id}`}
-                      className="font-semibold text-sm hover:underline text-primary flex items-center gap-2"
-                    >
-                      <FolderGit2 className="h-4 w-4 text-muted-foreground" />
-                      {repo.name}
-                    </Link>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>{repo.language}</span>
-                      <span>•</span>
-                      <span>Updated {repo.updatedAt}</span>
+          ) : recentRepos.length === 0 ? (
+            <div className="text-center py-8 text-sm text-muted-foreground space-y-3">
+              <FolderGit2 className="h-8 w-8 mx-auto text-muted-foreground/40" />
+              <p>No repositories found. Sync your GitHub account to get started.</p>
+              <Button onClick={() => sync()} disabled={isSyncing} variant="outline" size="sm">
+                Sync Repositories
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {recentRepos.map((repo) => {
+                const isReady = repo.indexStatus === "READY" || repo.indexStatus === "DONE";
+                return (
+                  <div
+                    key={repo.id}
+                    className="flex items-center justify-between p-3 rounded-xl border border-border/80 bg-card hover:bg-muted/40 transition-colors"
+                  >
+                    <div className="space-y-1 min-w-0 flex-1 mr-3">
+                      <div className="flex items-center gap-2 truncate">
+                        <FolderGit2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <a
+                          href={repo.htmlUrl || (repo.owner ? `https://github.com/${repo.owner}/${repo.name}` : `https://github.com/${repo.fullName}`)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-semibold text-sm hover:underline text-foreground truncate cursor-pointer"
+                          title="Open in GitHub"
+                        >
+                          {repo.name}
+                        </a>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground truncate">
+                        {repo.language && (
+                          <>
+                            <span className="flex items-center gap-1">
+                              <span className="h-2 w-2 rounded-full bg-blue-500" />
+                              {repo.language}
+                            </span>
+                            <span>•</span>
+                          </>
+                        )}
+                        <span>{repo.chunkCount || 0} chunks</span>
+                        {repo.indexedAt && (
+                          <>
+                            <span>•</span>
+                            <span>Indexed {new Date(repo.indexedAt).toLocaleDateString()}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2.5 shrink-0">
+                      <RepoStatusBadge status={repo.indexStatus} />
+                      {isReady ? (
+                        <Link
+                          to={`/chat/${repo.id}`}
+                          className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1 text-xs")}
+                        >
+                          <MessageSquare className="h-3.5 w-3.5 text-primary" />
+                          Chat
+                        </Link>
+                      ) : (
+                        <Link
+                          to="/dashboard"
+                          className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-xs text-muted-foreground")}
+                        >
+                          View
+                        </Link>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Badge variant={repo.status === "indexed" ? "default" : "secondary"}>
-                      {repo.status}
-                    </Badge>
-                    <Link to={`/chat/${repo.id}`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
-                      Chat
-                    </Link>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="md:col-span-3">
-          <CardHeader>
-            <CardTitle>Workspace Usage</CardTitle>
-            <CardDescription>Vector Database & Embedding Storage</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Embedding Tokens Used</span>
-                <span className="font-medium">245k / 1M</span>
-              </div>
-              <Progress value={24.5} />
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Vector Store Storage</span>
-                <span className="font-medium">1.2 GB / 5 GB</span>
-              </div>
-              <Progress value={24} />
-            </div>
-
-            <div className="rounded-lg bg-muted p-4 space-y-2">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Pro Tip
-              </h4>
-              <p className="text-xs text-foreground">
-                Connect your GitHub account to automatically index code updates when you push commits.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

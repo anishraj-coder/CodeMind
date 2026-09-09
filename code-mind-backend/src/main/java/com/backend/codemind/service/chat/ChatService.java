@@ -7,6 +7,7 @@ import com.backend.codemind.dto.RetrievedContext;
 import com.backend.codemind.entity.ChatMessage;
 import com.backend.codemind.entity.ChatSession;
 import com.backend.codemind.entity.enums.MessageRole;
+import com.backend.codemind.exceptions.NotFoundException;
 import com.backend.codemind.repository.ChatMessageRepository;
 import com.backend.codemind.repository.ChatSessionRepository;
 import com.backend.codemind.service.ai.ChatPromptBuilder;
@@ -101,7 +102,8 @@ public class ChatService {
 
     @Transactional(readOnly = true)
     public List<ChatMessageResponse> getSessionHistory(UUID sessionId) {
-        List<ChatMessage> chatMessages = chatMessageRepository.findAllBySessionIdOrderByCreatedAtDesc(sessionId);
+        List<ChatMessage> chatMessages = chatMessageRepository
+                .findAllBySessionSessionIdOrderByCreatedAtDesc(sessionId);
         return chatMessages.stream()
                 .map(msg -> ChatMessageResponse.builder()
                         .role(msg.getRole()).content(msg.getContent())
@@ -117,21 +119,23 @@ public class ChatService {
         for (ChatSession session : sessions) {
 //            List<ChatMessage> messages=chatMessageRepository
 //                    .findAllBySessionIdOrderByCreatedAtDesc(session.getSessionId());
-            Long messageCount = chatMessageRepository.countAllBySessionId(session.getSessionId());
+            int messageCount = session.getMessages().size();
             if (messageCount == 0) {
                 chatSessionRepository.delete(session);
                 continue;
             }
             String title = session.getSessionTitle();
             if (!StringUtils.hasText(title)) {
-                title = chatMessageRepository.findFirstBySessionIdOrderByCreatedAtAsc(session.getSessionId())
+                title = chatMessageRepository.findFirstBySessionSessionIdOrderByCreatedAtAsc(session.getSessionId())
                         .map(ChatMessage::getContent)
                         .map(msg -> msg.length() > 30 ? msg.substring(0, 30) + "..." : msg)
                         .orElse("New chat");
+                session.setSessionTitle(title);
+                chatSessionRepository.save(session);
             }
             filteredSession.add(ChatSessionResponse.builder()
                     .sessionTitle(title)
-                    .messages(messageCount)
+                    .messages(messageCount/2L)
                     .sessionId(session.getSessionId())
                     .build());
         }
@@ -140,21 +144,26 @@ public class ChatService {
 
 
     private void saveChatMessage(UUID sessionId, String content, RetrievedContext context) {
+        ChatSession session=chatSessionRepository.findById(sessionId)
+                .orElseThrow(()->new NotFoundException("Invalid sessionId"));
+
         String citations = citationMapper.toJson(context.citations());
         ChatMessage chatMessage = ChatMessage.builder()
-                .sessionId(sessionId)
                 .content(content)
                 .citations(citations)
                 .role(MessageRole.ASSISTANT)
+                .session(session)
                 .build();
         chatMessageRepository.save(chatMessage);
     }
 
 
     private void saveUserMessage(UUID sessionId, String question) {
+        ChatSession session=chatSessionRepository.findById(sessionId)
+                        .orElseThrow(()->new NotFoundException("Invalid session ID"));
         chatMessageRepository.save(
                 ChatMessage.builder()
-                        .sessionId(sessionId)
+                        .session(session)
                         .role(MessageRole.USER)
                         .content(question)
                         .build()

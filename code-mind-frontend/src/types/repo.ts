@@ -1,4 +1,4 @@
-export type IndexStatus = 'PENDING' | 'INDEXING' | 'READY' | 'DONE';
+export type IndexStatus = 'PENDING' | 'INDEXING' | 'READY' | 'DONE' | 'STALE' | 'FAILED';
 
 export interface GitHubRepositoryResponse {
   id: number;

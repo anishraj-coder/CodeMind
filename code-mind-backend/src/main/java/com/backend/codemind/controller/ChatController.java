@@ -1,9 +1,12 @@
 package com.backend.codemind.controller;
 
 import com.backend.codemind.config.WithRateLimiter;
+import com.backend.codemind.dto.ChatMessageResponse;
 import com.backend.codemind.dto.ChatRequest;
 import com.backend.codemind.dto.ChatSessionResponse;
+import com.backend.codemind.entity.ChatMessage;
 import com.backend.codemind.security.CurrentUser;
+import com.backend.codemind.service.chat.ChatLifeCycleService;
 import com.backend.codemind.service.chat.ChatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -23,6 +26,7 @@ public class ChatController {
 
     private final ChatService chatService;
     private final CurrentUser currentUser;
+    private final ChatLifeCycleService chatLifeCycleService;
 
     @WithRateLimiter
     @PostMapping("/sessions/{repoId}/create")
@@ -40,12 +44,26 @@ public class ChatController {
         return chatService.streamChat(UUID.fromString(sessionId),request);
     }
 
+    @GetMapping("/sessions/history")
+    public ResponseEntity<List<ChatMessageResponse>> getSessionHistory(
+            @RequestHeader("session_id") String sessionId
+    ){
+        return ResponseEntity.ok(chatService.getSessionHistory(UUID.fromString(sessionId)));
+    }
+
     @GetMapping("/sessions/{repoId}")
     public List<ChatSessionResponse> listAllSessions(
             @PathVariable("repoId")Long repoId
     ){
         Long userId=currentUser.require().getUser().getId();
         return chatService.getAllSessions(userId,repoId);
+    }
+
+    @DeleteMapping
+    public ResponseEntity<Void> deleteChatSession(@RequestHeader(name = "session_id") UUID sessionId){
+        Long userId=currentUser.require().getUser().getId();
+        chatLifeCycleService.deleteChatSession(sessionId);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).build();
     }
 
 
