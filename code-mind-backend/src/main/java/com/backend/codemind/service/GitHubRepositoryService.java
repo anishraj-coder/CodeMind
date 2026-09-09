@@ -136,11 +136,11 @@ public class GitHubRepositoryService {
                 .htmlUrl(repo.getHtmlUrl())
                 .description(repo.getDescription())
                 .indexStatus(repo.getIndexStatus())
-                .indexedAt(null)
-                .chunkCount(0)
-                .filesProcessed(0)
-                .filesTotal(0)
-                .errorMessage(null)
+                .indexedAt(repo.getIndexedAt())
+                .chunkCount(repo.getChunkCount())
+                .filesProcessed(repo.getFilesProcessed())
+                .filesTotal(repo.getFilesTotal())
+                .errorMessage(repo.getErrorMessage())
                 .lastCommitHash(repo.getLastCommitHash())
                 .build();
     }

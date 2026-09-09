@@ -38,17 +38,10 @@ public class ChatLifeCycleService {
 
     }
 
-    @Async("indexingExecutor")
     @Transactional
     public void deleteByUserIdAndRepID(Long userId, Long repoId){
         log.info("[CHAT_LIFE_CYCLE_SERVICE]: delete request for repId Id {} ",repoId);
         try {
-            List<ChatSession> sessions=chatSessionRepository.findAllByUserIdAndRepoIdOrderByCreatedAtDesc(userId,repoId);
-            chatSessionRepository.deleteAll(sessions);
-            vectorStoreRepository.deleteByRepoId(repoId);
-            for (ChatSession session: sessions){
-                chatLifeCycleRepo.deleteByConversationId(session.getSessionId());
-            }
             GitHubRepository repository=gitHubRepositoryService.requireOwned(userId,repoId);
             repository.setIndexedAt(null);
             repository.setChunkCount(0);
@@ -56,10 +49,17 @@ public class ChatLifeCycleService {
             repository.setFilesProcessed(0);
             repository.setIndexStatus(IndexStatus.PENDING);
             gitHubRepositoryRepository.save(repository);
-        }catch (Exception ex){
-            log.info("[CHAT_LIFE_CYCLE_SERVICE]: Failed to  delete for repId Id {} ex: {} ",
-                    repoId,ex.getMessage());
 
+            List<ChatSession> sessions=chatSessionRepository.findAllByUserIdAndRepoIdOrderByCreatedAtDesc(userId,repoId);
+            chatSessionRepository.deleteAll(sessions);
+            vectorStoreRepository.deleteByRepoId(repoId);
+            for (ChatSession session: sessions){
+                chatLifeCycleRepo.deleteByConversationId(session.getSessionId());
+            }
+        }catch (Exception ex){
+            log.info("[CHAT_LIFE_CYCLE_SERVICE]: Failed to delete for repId Id {} ex: {} ",
+                    repoId,ex.getMessage());
         }
     }
+
 }

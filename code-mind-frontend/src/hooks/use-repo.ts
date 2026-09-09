@@ -40,10 +40,42 @@ export const useDeleteRepoIndex = () => {
 
     return useMutation({
         mutationFn: (repoId: number) => deleteRepoIndexApi(repoId),
-        onSuccess: (_, repoId) => {
+        onMutate: async (repoId: number) => {
+            await queryClient.cancelQueries({ queryKey: ["repos"] });
+            const previousRepos = queryClient.getQueryData<GitHubRepositoryResponse[]>(["repos"]);
+
+            if (previousRepos) {
+                queryClient.setQueryData<GitHubRepositoryResponse[]>(
+                    ["repos"],
+                    previousRepos.map((r) =>
+                        r.id === repoId
+                            ? {
+                                  ...r,
+                                  indexStatus: "PENDING",
+                                  chunkCount: 0,
+                                  filesProcessed: 0,
+                                  filesTotal: 0,
+                                  indexedAt: null,
+                                  errorMessage: null,
+                              }
+                            : r
+                    )
+                );
+            }
+
+            // Remove stale status query data
+            queryClient.removeQueries({ queryKey: ["repo-status", repoId] });
+
+            return { previousRepos };
+        },
+        onError: (_err, _repoId, context) => {
+            if (context?.previousRepos) {
+                queryClient.setQueryData(["repos"], context.previousRepos);
+            }
+        },
+        onSettled: (_, __, repoId) => {
             queryClient.invalidateQueries({ queryKey: ["repos"] });
             queryClient.invalidateQueries({ queryKey: ["repo", repoId] });
-            queryClient.invalidateQueries({ queryKey: ["repo-status", repoId] });
             queryClient.invalidateQueries({ queryKey: ["chat-sessions", repoId] });
         },
     });

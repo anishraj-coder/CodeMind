@@ -41,9 +41,10 @@ export function RepoCard({ repo, onIndex, isIndexingAction }: RepoCardProps) {
     refetchInterval: isInitialIndexing ? 1500 : false,
   });
 
-  const currentStatus = statusData?.indexStatus || repo.indexStatus;
+  const currentStatus = isInitialIndexing && statusData ? statusData.indexStatus : repo.indexStatus;
   const isReady = currentStatus === "READY" || currentStatus === "DONE";
   const isIndexing = currentStatus === "INDEXING" || isIndexingAction;
+
 
   const filesTotal = statusData?.filesTotal ?? repo.filesTotal ?? 0;
   const filesProcessed = statusData?.filesProcessed ?? repo.filesProcessed ?? 0;
