@@ -1,9 +1,6 @@
 package com.backend.codemind.service.chat;
 
-import com.backend.codemind.dto.ChatMessageResponse;
-import com.backend.codemind.dto.ChatRequest;
-import com.backend.codemind.dto.ChatSessionResponse;
-import com.backend.codemind.dto.RetrievedContext;
+import com.backend.codemind.dto.*;
 import com.backend.codemind.entity.ChatMessage;
 import com.backend.codemind.entity.ChatSession;
 import com.backend.codemind.entity.enums.MessageRole;
@@ -20,12 +17,14 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -105,11 +104,56 @@ public class ChatService {
         List<ChatMessage> chatMessages = chatMessageRepository
                 .findAllBySessionSessionIdOrderByCreatedAtDesc(sessionId);
         return chatMessages.stream()
-                .map(msg -> ChatMessageResponse.builder()
-                        .role(msg.getRole()).content(msg.getContent())
-                        .citations(citationMapper.fromJson(msg.getCitations()))
-                        .createdAt(msg.getCreatedAt()).build())
+                .map(this::mapToChatMessageResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PaginatedChatHistory getPaginatedChatHistory(UUID sessionId, String before, int limit) {
+        LocalDateTime cursorTime = null;
+        UUID cursorId = null;
+
+        if (StringUtils.hasText(before)) {
+            var parts = before.split("\\|", 2);
+            if (parts.length == 2) {
+                try {
+                    cursorTime = LocalDateTime.parse(parts[0]);
+                    cursorId = UUID.fromString(parts[1]);
+                } catch (Exception ex) {
+                    log.warn("[PAGINATION]: Invalid cursor format '{}', fetching from start", before);
+                }
+            }
+        }
+
+        var pageable = Pageable.ofSize(limit + 1);
+
+        List<ChatMessage> messages = (cursorTime == null || cursorId == null)
+                ? chatMessageRepository.findFirstPageBySessionSessionId(sessionId, pageable)
+                : chatMessageRepository.findNextPageBySessionSessionId(sessionId, cursorTime, cursorId, pageable);
+
+        boolean hasMore = messages.size() > limit;
+        if (hasMore) {
+            messages = messages.subList(0, limit);
+        }
+        String nextKey = null;
+        if (hasMore && !messages.isEmpty()) {
+            var last = messages.getLast();  // Java 21+ method, safe on Java 25
+            nextKey = last.getCreatedAt() + "|" + last.getId();  // Use pipe delimiter
+        }
+
+        List<ChatMessageResponse> messageResponses = messages.stream()
+                .map(this::mapToChatMessageResponse)
+                .toList();
+
+        var metaData = PaginationMeta.builder()
+                .nextKey(nextKey)
+                .hasMore(hasMore)
+                .build();
+
+        return PaginatedChatHistory.builder()
+                .messages(messageResponses)
+                .pagination(metaData)
+                .build();
     }
 
     @Transactional
@@ -168,5 +212,12 @@ public class ChatService {
                         .content(question)
                         .build()
         );
+    }
+
+    private ChatMessageResponse mapToChatMessageResponse(ChatMessage message){
+        return ChatMessageResponse.builder()
+                .id(message.getId()).role(message.getRole()).content(message.getContent())
+                .citations(citationMapper.fromJson(message.getCitations()))
+                .createdAt(message.getCreatedAt()).build();
     }
 }

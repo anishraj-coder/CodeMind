@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { ArrowLeft, ArrowDown, FolderGit2, History, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowDown, ArrowUp, FolderGit2, History, Loader2, Sparkles } from "lucide-react";
 import { Link } from "react-router";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -27,6 +27,9 @@ export function ChatView({ repoId }: ChatViewProps) {
     messages,
     isGenerating,
     isLoadingHistory,
+    isLoadingMoreHistory,
+    hasMoreHistory,
+    loadMoreHistory,
     sendMessage,
     startNewSession,
     selectSession,
@@ -62,6 +65,28 @@ export function ChatView({ repoId }: ChatViewProps) {
     isNearBottomRef.current = true;
     setShowScrollBottom(false);
   }, []);
+
+  const handleLoadMore = async () => {
+    if (!scrollContainerRef.current) {
+      await loadMoreHistory();
+      return;
+    }
+
+    const container = scrollContainerRef.current;
+    const previousScrollHeight = container.scrollHeight;
+    const previousScrollTop = container.scrollTop;
+
+    await loadMoreHistory();
+
+    requestAnimationFrame(() => {
+      if (scrollContainerRef.current) {
+        const newScrollHeight = scrollContainerRef.current.scrollHeight;
+        const heightDifference = newScrollHeight - previousScrollHeight;
+        scrollContainerRef.current.scrollTop = previousScrollTop + heightDifference;
+      }
+    });
+  };
+
 
   // When new messages or streaming tokens arrive: auto-scroll ONLY if user was already at bottom
   useEffect(() => {
@@ -234,10 +259,36 @@ export function ChatView({ repoId }: ChatViewProps) {
                 </div>
               </div>
             ) : (
-              messages.map((msg) => (
-                <ChatMessageItem key={msg.id} message={msg} />
-              ))
+              <>
+                {hasMoreHistory && (
+                  <div className="flex justify-center pt-1 pb-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleLoadMore}
+                      disabled={isLoadingMoreHistory}
+                      className="text-xs text-muted-foreground hover:text-foreground h-8 px-3.5 rounded-full border-dashed gap-2 cursor-pointer shadow-xs"
+                    >
+                      {isLoadingMoreHistory ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                          <span>Loading older messages...</span>
+                        </>
+                      ) : (
+                        <>
+                          <ArrowUp className="h-3.5 w-3.5" />
+                          <span>Load older messages</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+                {messages.map((msg) => (
+                  <ChatMessageItem key={msg.id} message={msg} />
+                ))}
+              </>
             )}
+
           </div>
         </div>
 

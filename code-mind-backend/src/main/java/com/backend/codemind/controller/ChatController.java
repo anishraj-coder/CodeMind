@@ -4,6 +4,7 @@ import com.backend.codemind.config.WithRateLimiter;
 import com.backend.codemind.dto.ChatMessageResponse;
 import com.backend.codemind.dto.ChatRequest;
 import com.backend.codemind.dto.ChatSessionResponse;
+import com.backend.codemind.dto.PaginatedChatHistory;
 import com.backend.codemind.entity.ChatMessage;
 import com.backend.codemind.security.CurrentUser;
 import com.backend.codemind.service.chat.ChatLifeCycleService;
@@ -45,10 +46,23 @@ public class ChatController {
     }
 
     @GetMapping("/sessions/history")
-    public ResponseEntity<List<ChatMessageResponse>> getSessionHistory(
-            @RequestHeader("session_id") String sessionId
+    public ResponseEntity<?> getSessionHistory(
+            @RequestHeader("session_id") String sessionId,
+            @RequestParam(name = "limit",required = false) Integer limit,
+            @RequestParam(name="before",required = false) String before
     ){
-        return ResponseEntity.ok(chatService.getSessionHistory(UUID.fromString(sessionId)));
+        UUID sessionUuid=UUID.fromString(sessionId);
+        if(limit==null){
+            List<ChatMessageResponse> responses=chatService.getSessionHistory(sessionUuid);
+            return ResponseEntity.ok(responses);
+        }
+
+        int effectiveLimit= limit>0 ?limit:5;
+
+        PaginatedChatHistory paginatedChatHistory=chatService
+                .getPaginatedChatHistory(sessionUuid,before,effectiveLimit);
+
+        return ResponseEntity.ok(paginatedChatHistory);
     }
 
     @GetMapping("/sessions/{repoId}")

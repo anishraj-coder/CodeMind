@@ -15,12 +15,17 @@ export function useChatStream({ repoId, repoFullName }: UseChatStreamProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [isLoadingMoreHistory, setIsLoadingMoreHistory] = useState(false);
+  const [hasMoreHistory, setHasMoreHistory] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const queryClient = useQueryClient();
 
   const startNewSession = () => {
     setSessionId(null);
     setMessages([]);
+    setNextCursor(null);
+    setHasMoreHistory(false);
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       setIsGenerating(false);
@@ -37,12 +42,15 @@ export function useChatStream({ repoId, repoFullName }: UseChatStreamProps) {
 
     setSessionId(existingSessionId);
     setMessages([]);
+    setNextCursor(null);
+    setHasMoreHistory(false);
     setIsLoadingHistory(true);
 
     try {
-      const history = await fetchSessionHistoryApi(existingSessionId);
+      const historyData = await fetchSessionHistoryApi(existingSessionId, 15);
+      const rawMessages = historyData?.messages || [];
       // Backend returns Descending (newest first); reverse to Ascending (chronological top-to-bottom)
-      const chronological = (history || []).slice().reverse();
+      const chronological = rawMessages.slice().reverse();
 
       const formattedMessages: ChatMessage[] = chronological.map((msg) => ({
         id: msg.id || crypto.randomUUID(),
@@ -55,12 +63,47 @@ export function useChatStream({ repoId, repoFullName }: UseChatStreamProps) {
       }));
 
       setMessages(formattedMessages);
+      setNextCursor(historyData?.pagination?.nextKey || null);
+      setHasMoreHistory(Boolean(historyData?.pagination?.hasMore));
     } catch (err) {
       console.error("Failed to load session history:", err);
     } finally {
       setIsLoadingHistory(false);
     }
   };
+
+  const loadMoreHistory = async () => {
+    if (!sessionId || !nextCursor || !hasMoreHistory || isLoadingMoreHistory || isGenerating) {
+      return;
+    }
+
+    setIsLoadingMoreHistory(true);
+
+    try {
+      const historyData = await fetchSessionHistoryApi(sessionId, 15, nextCursor);
+      const rawMessages = historyData?.messages || [];
+      const chronological = rawMessages.slice().reverse();
+
+      const formattedOlderMessages: ChatMessage[] = chronological.map((msg) => ({
+        id: msg.id || crypto.randomUUID(),
+        role: msg.role,
+        content: msg.content,
+        citations: msg.citations || [],
+        createdAt: msg.createdAt
+          ? new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+          : undefined,
+      }));
+
+      setMessages((prev) => [...formattedOlderMessages, ...prev]);
+      setNextCursor(historyData?.pagination?.nextKey || null);
+      setHasMoreHistory(Boolean(historyData?.pagination?.hasMore));
+    } catch (err) {
+      console.error("Failed to load more chat history:", err);
+    } finally {
+      setIsLoadingMoreHistory(false);
+    }
+  };
+
 
   const sendMessage = async (question: string) => {
     if (!question.trim() || isGenerating) return;
@@ -187,9 +230,13 @@ export function useChatStream({ repoId, repoFullName }: UseChatStreamProps) {
     messages,
     isGenerating,
     isLoadingHistory,
+    isLoadingMoreHistory,
+    hasMoreHistory,
+    loadMoreHistory,
     sendMessage,
     startNewSession,
     selectSession,
     stopGenerating,
   };
 }
+

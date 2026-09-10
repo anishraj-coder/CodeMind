@@ -35,3 +35,14 @@ export interface ChatRequest {
   repositoryFullName: string;
   question: string;
 }
+
+export interface PaginationMeta {
+  nextKey: string | null;
+  hasMore: boolean;
+}
+
+export interface PaginatedChatHistory {
+  messages: ChatMessageResponse[];
+  pagination: PaginationMeta;
+}
+
